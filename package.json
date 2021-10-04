@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bunyan": "^1.8.15",
     "restify": "^8.6.0",
     "restify-errors": "^8.0.2"
   }

@@ -1,1 +1,4 @@
+# Dependency Directory
 node_modules
+
+.env

@@ -1,12 +1,10 @@
 'use strict';
 
-const PromiseA = require('bluebird'),
-      _ = require('lodash'),
-      path = require('path'),
-      libPath = path.resolve(__dirname, '../../../../'),
-      sharedModels = require(path.resolve(libPath, 'models')).create(),
-      modelsHelper = require(path.resolve(libPath, 'models', 'helper')),
-      AuthMiddleware = require('../../../../middleware/auth');
+import PromiseA from 'bluebird';
+import SharedModels from '../../../../models';
+const sharedModels = SharedModels.create();
+import modelsHelper from '../../../../models/helper';
+import AuthMiddleware from '../../../../middleware/auth';
 
 class Model {
   constructor(config, logger, db) {
@@ -45,7 +43,7 @@ class Model {
   mapResponse(results) {
     let toReturn = {};
 
-    _.each(results, (lot) => {
+    results.forEach((lot) => {
       toReturn[lot.row_id] = lot;
     });
 
@@ -113,8 +111,8 @@ class Model {
       .whereIn('auction_lot_id', lotIds)
       .rightJoin('category', 'category.row_id', 'auction_lot_category.category_id')
       .then((results) => {
-        _.each(lots, (lot) => {
-          let liveData = _.filter(results, { 'auction_lot_id': lot.row_id });
+        lots.forEach((lot) => {
+          let liveData = results.filter((e) => e.auction_lot_id === lot.row_id);
           lot.categories = (liveData.length)? liveData: [];
         });
         return lots;
@@ -130,7 +128,7 @@ class Model {
     entry = entry || {};
 
     // TODO: make a simple check method for multiple fieldsets
-    if (_.includes(fieldset, 'auction.summary') || _.includes(fieldset, 'detail') || _.includes(fieldset, 'summary')) {
+    if (fieldset.includes('auction.summary') || fieldset.includes('detail')  || fieldset.includes('summary') ) {
       entry.auction = modelsHelper.mapColumnsToObject(row, 'auction');
       entry.consignor = modelsHelper.mapColumnsToObject(row, 'consignor');
       entry.auction.currency_code = row['currency-currency_code'];
@@ -140,7 +138,7 @@ class Model {
       entry.auction.lot_url = this.config.get('serverBaseUrl')+'v1/artist/'+entry.row_id+'/lots';
       entry.auction.effective_end_time = row['effective_end_time'];
       entry.auction.cover_thumbnail = row['auction_image_cover_thumbnail'];
-      if (_.isObject(row['auction-xattrs']) && !_.isEmpty(row['auction-xattrs'].bidTable)) {
+      if (typeof row['auction-xattrs'] === 'object' && row['auction-xattrs'].bidTable) {
         entry.auction.bidTable = row['auction-xattrs'].bidTable;
       }
       delete entry.auction.xattrs;
@@ -152,20 +150,20 @@ class Model {
       entry.auction.total_hammer_price = 0;
     }
 
-
-    if (_.includes(fieldset, 'live-bid-timed-count')) {
+    fieldset.includes('live-bid-live-count') 
+    if (fieldset.includes('live-bid-timed-count') ) {
       entry.liveBidTimedCount = row['live_bid-timed_count'];
     }
 
-    if (_.includes(fieldset, 'live-bid-live-count')) {
+    if (fieldset.includes('live-bid-live-count')) {
       entry.liveBidLiveCount = row['live_bid-live_count'];
     }
 
-    if (_.includes(fieldset, 'reserve-status') && AuthMiddleware.hasPermission(query.user, ':publish-reserve-status')) {
+    if (fieldset.includes('reserve-status') && AuthMiddleware.hasPermission(query.user, ':publish-reserve-status')) {
       entry.reserveMet = row['auction_lot-reserve_price'] ? parseFloat(row['winning_bid-amount'] || row['auction_lot-sold_price'] || 0) >= parseFloat(row['auction_lot-reserve_price']) : null;
     }
 
-    if (query.where.asUserId && (_.includes(fieldset, 'detail') || _.includes(fieldset, 'timed-auction'))) {
+    if (query.where.asUserId && (fieldset.includes('detail') || fieldset.includes('timed-auction'))) {
       let artistRecord=[],
           records = modelsHelper.mapColumnsToObject(row, 'artist_records');
       if (records) {
@@ -173,7 +171,7 @@ class Model {
         records.detail_url = this.config.get('serverBaseUrl')+'v1/artist/'+records.row_id;
         records.watch_url = this.config.get('serverBaseUrl')+'v1/artist/'+records.row_id+'/watch';
         let watchedArtist = modelsHelper.mapColumnsToObject(row, 'watched_artist');
-        records.is_watched=(!_.isEmpty(watchedArtist)) ? true : false;
+        records.is_watched=watchedArtist ? true : false;
         records.cover_thumbnail = row ['artist_image_cover_thumbnail'];
         records.type = 'artist-summary';
         artistRecord.push(records);
@@ -186,7 +184,7 @@ class Model {
 
       if (query.where.asUserId) {
         let watchedLot = modelsHelper.mapColumnsToObject(row, 'watched_lot');
-        entry.is_watched = (!_.isEmpty(watchedLot)) ? true : false;
+        entry.is_watched = watchedLot ? true : false;
       }
       let auctionLotGroupRecord =[],
           auction_lot_records=modelsHelper.mapColumnsToObject(row, 'auction_lot_group');
@@ -204,11 +202,11 @@ class Model {
       entry.watch_url = this.config.get('serverBaseUrl')+'v1/auction-lot/'+entry.row_id+'/watch';
     }
 
-    if (_.includes(fieldset, 'timed-auction')) {
+    if (fieldset.includes('timed-auction')) {
       entry.timedAuctionBid = this.extractWinningBid(row, query);
     }
 
-    if (_.includes(fieldset, 'absentee-bid') && query.where.asUserId) {
+    if (fieldset.includes('absentee-bid') && query.where.asUserId) {
       entry.absenteeBid = modelsHelper.mapColumnsToObject(row, 'ab');
     }
     return entry;
@@ -223,51 +221,51 @@ class Model {
       return [];
     }
 
-    if (_.includes(fieldset, 'summary')) {
+    if (fieldset.includes('summary')) {
       selectColumns = selectColumns.concat(sharedModels.auctionLot.summaryColumns());
     }
 
-    if (_.includes(fieldset, 'auction.summary') || _.includes(fieldset, 'summary')) {
+    if (fieldset.includes('auction.summary') || fieldset.includes('summary')) {
       selectColumns = selectColumns.concat(sharedModels.auction.summaryColumns('auction', ['xattrs']));
     }
 
-    if (_.includes(fieldset, 'auction.summary') || _.includes(fieldset, 'summary') || _.includes(fieldset, 'detail')) {
+    if (fieldset.includes('auction.summary') || fieldset.includes('summary') || fieldset.includes('detail')) {
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('currency', 'currency_code'));
     }
 
-    if ( _.includes(fieldset, 'detail')) {
+    if (fieldset.includes('detail')) {
       selectColumns = selectColumns.concat(sharedModels.auction.detailColumns('auction', ['xattrs']));
     }
 
-    if (_.includes(fieldset, 'lot-number')) {
+    if (fieldset.includes('lot-number')) {
       selectColumns = selectColumns.concat(sharedModels.auctionLot.lotNumberColumns());
     }
 
-    if (_.includes(fieldset, 'reserve-status') && AuthMiddleware.hasPermission(query.user, 'publish-reserve-status')) {
+    if (fieldset.includes('reserve-status') && AuthMiddleware.hasPermission(query.user, 'publish-reserve-status')) {
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('auction_lot', 'reserve_price'));
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('auction_lot', 'sold_price'));
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('winning_bid', 'amount'));
     }
 
-    if (_.includes(fieldset, 'description')) {
+    if (fieldset.includes('description')) {
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('auction_lot', 'description'));
     }
 
-    if (_.includes(fieldset, 'editorial')) {
+    if (fieldset.includes('editorial')) {
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('auction_lot', 'editorial_summary'));
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('auction_lot', 'editorial_external_url'));
     }
 
-    if (_.includes(fieldset, 'highlight-header')) {
+    if (fieldset.includes('highlight-header')) {
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('auction_lot', 'highlight'));
       selectColumns = selectColumns.concat(modelsHelper.mapColumn('auction_lot', 'highlight_header'));
     }
 
-    if (_.includes(fieldset, 'detail') || _.includes(fieldset, 'timed-auction')) {
+    if (fieldset.includes('detail') || fieldset.includes('timed-auction')) {
       selectColumns = selectColumns.concat(sharedModels.auctionLot.detailColumns());
       selectColumns = selectColumns.concat(sharedModels.artist.summaryColumns('artist_records', isAdmin));
       selectColumns = selectColumns.concat(sharedModels.consignor.summaryColumns('consignor'));
-      if (!_.isEmpty(query.where.asUserId)) {
+      if (query.where.asUserId) {
         selectColumns = selectColumns.concat(sharedModels.watchedArtist.summaryColumns('watched_artist'));
         selectColumns = selectColumns.concat(sharedModels.watchedLot.summaryColumns('watched_lot'));
       }
@@ -277,7 +275,7 @@ class Model {
       selectColumns = selectColumns.concat(sharedModels.customer.summaryColumns('winning_customer', isAdmin));
     }
 
-    if (_.includes(fieldset, 'absentee-bid') && !_.isEmpty(query.where.asUserId)) {
+    if (fieldset.includes('absentee-bid') && query.where.asUserId) {
       selectColumns = selectColumns.concat(sharedModels.absenteeBid.summaryColumns('ab', isAdmin));
     }
 
@@ -288,12 +286,12 @@ class Model {
     let joinStatements = [],
         fieldset = query.fieldset;
 
-    if (_.includes(fieldset, 'auction.summary') || _.includes(fieldset, 'summary') || _.includes(fieldset, 'detail')) {
+    if (fieldset.includes('auction.summary') || fieldset.includes('summary') || fieldset.includes('detail')) {
       joinStatements.push('INNER JOIN auction ON auction_lot.auction_id = auction.row_id');
       joinStatements.push('INNER JOIN currency ON auction.currency_id = currency.row_id');
     }
 
-    if (!_.isEmpty(query.where.asUserId) && query.isAdmin === false) {
+    if (query.where.asUserId && query.isAdmin === false) {
       joinStatements.push(this.db.knex.raw('LEFT JOIN auction_registration AS UAR ON (auction_lot.auction_id = UAR.auction_id AND UAR.customer_id = ?)', query.where.asUserId));
       joinStatements.push('LEFT JOIN live_bid AS ULB ON (auction_lot.winning_bid_id = ULB.row_id AND UAR.row_id = ULB.registration_id)');
     }
@@ -302,7 +300,7 @@ class Model {
       return joinStatements;
     }
 
-    if (_.includes(fieldset, 'reserve-status') || _.includes(fieldset, 'detail') || _.includes(fieldset, 'timed-auction')) {
+    if (fieldset.includes('reserve-status') || fieldset.includes('detail') ||fieldset.includes('timed-auction')) {
       joinStatements.push('LEFT JOIN live_bid AS winning_bid ON auction_lot.winning_bid_id = winning_bid.row_id');
       joinStatements.push('LEFT JOIN auction_registration AS winning_registration ON winning_bid.registration_id = winning_registration.row_id');
       joinStatements.push('LEFT JOIN customer AS winning_customer ON winning_registration.customer_id = winning_customer.row_id');
@@ -312,12 +310,12 @@ class Model {
       joinStatements.push('LEFT JOIN auction_lot_group ON auction_lot_group.row_id = auction_lot.auction_lot_group_id');
     }
 
-    if (!_.isEmpty(query.where.asUserId)) {
+    if (query.where.asUserId) {
       joinStatements.push(this.db.knex.raw('LEFT JOIN watched_artist AS watched_artist ON (watched_artist.artist_id = auction_lot.artist_id AND watched_artist.customer_id = ?)', query.where.asUserId));
       joinStatements.push(this.db.knex.raw('LEFT JOIN watched_lot AS watched_lot ON (watched_lot.auction_lot_id =auction_lot.row_id  AND watched_lot.customer_id = ?)',  query.where.asUserId));
     }
 
-    if (_.includes(fieldset, 'absentee-bid') && !_.isEmpty(query.where.asUserId)) {
+    if (fieldset.includes('absentee-bid') && query.where.asUserId) {
       joinStatements.push(this.db.knex.raw('LEFT JOIN auction_registration AS ab_auction_reg ON (ab_auction_reg.auction_id = auction_lot.auction_id AND ab_auction_reg.customer_id = ?)', query.where.asUserId));
       joinStatements.push('LEFT JOIN absentee_bid AS ab ON (ab.lot_id = auction_lot.row_id AND ab.registration_id = ab_auction_reg.row_id AND (NOT ab.cancelled))');
     }
@@ -329,7 +327,7 @@ class Model {
     let queryP = PromiseA.resolve(lots),
         fieldset = query.fieldset;
 
-    if (_.includes(fieldset, 'live-bid-timed-count') || _.includes(fieldset, 'live-bid-live-count')) {
+    if (fieldset.includes('live-bid-timed-count') || fieldset.includes('live-bid-live-count')) {
       queryP = this.db.knex('live_bid')
         .select('type', 'auction_lot_id')
         .count('*').as('count')
@@ -337,14 +335,14 @@ class Model {
         .where('cancelled', false)
         .groupBy('auction_lot_id', 'type')
         .then((results) => {
-          _.each(lots, (lot) => {
-            if (_.includes(fieldset, 'live-bid-timed-count')) {
-              let timedData = _.filter(results, { 'type': 'timed', 'auction_lot_id': lot.row_id });
+          lots.forEach((lot) => {
+            if (fieldset.includes('live-bid-timed-count')) {
+              let timedData = results.filter((e) => e.type === 'timed' && e.auction_lot_id === lot.row_id );
               lot.liveBidTimedCount = timedData[0] && parseInt(timedData[0].count) || 0;
             }
 
-            if (_.includes(fieldset, 'live-bid-live-count')) {
-              let liveData = _.filter(results, { 'type': 'live', 'auction_lot_id': lot.row_id });
+            if (fieldset.includes('live-bid-live-count')) {
+              let liveData = results.filter((e) => e.type === 'live' && e.auction_lot_id === lot.row_id );
               lot.liveBidLiveCount = liveData[0] && parseInt(liveData[0].count) || 0;
             }
           });
@@ -359,8 +357,7 @@ class Model {
   extraQueryDataHighestLiveBid(lotIds, lots, query) {
     let queryP = PromiseA.resolve(lots),
         fieldset = query.fieldset;
-
-    if (_.includes(fieldset, 'highest-live-bid') && query.where.asUserId) {
+    if (fieldset.includes('highest-live-bid') && query.where.asUserId) {
       queryP = this.db.knex('live_bid')
         .select(this.db.knex.raw('distinct on (live_bid.auction_lot_id) live_bid.amount, live_bid.row_id, live_bid.registration_id, live_bid.auction_lot_id'))
         .leftJoin('auction_registration', 'live_bid.registration_id', 'auction_registration.row_id')
@@ -372,11 +369,11 @@ class Model {
         .then((results) => {
           let mapResults = {};
 
-          _.each(results, (result) => {
+          results.forEach((result) => {
             mapResults[result.auction_lot_id] = result;
           });
 
-          _.each(lots, (lot) => {
+          lots.forEach((lot) => {
             lot.highestLiveBid = mapResults[lot.row_id] || null;
           });
 
@@ -391,8 +388,8 @@ class Model {
     let queryP = PromiseA.resolve(lots),
         fieldset = query.fieldset,
         isAdmin = query.isAdmin;
-
-    if (isAdmin === true && (_.includes(fieldset, 'summary') || _.includes(fieldset, 'detail'))) {
+        fieldset.includes('summary')
+    if (isAdmin === true && (fieldset.includes('summary') || fieldset.includes('detail'))) {
       queryP = this.db.knex('absentee_bid')
         .select(this.db.knex.raw('distinct on (lot_id) max_bid, row_id, registration_id, lot_id, group_id, confirmed, type'))
         .whereIn('lot_id', lotIds)
@@ -402,11 +399,11 @@ class Model {
         .then((results) => {
           let mapResults = {};
 
-          _.each(results, (result) => {
+          results.forEach((result) => {
             mapResults[result.lot_id] = result;
           });
 
-          _.each(lots, (lot) => {
+          lots.forEach((lot) => {
             lot.highestAbsenteeBid = mapResults[lot.row_id] || null;
           });
 
@@ -447,11 +444,11 @@ class Model {
     }
 
     joinStatements = self.joinStatements(query, isCountQuery);
-    selectColumns = self.selectColumnsByFieldset(query, isCountQuery);
+    selectColumns = [...new Set(self.selectColumnsByFieldset(query, isCountQuery))];
 
     kQuery = self.db.knex('auction_lot')
       .select(
-        _.uniq(selectColumns)
+      selectColumns
       )
       .where('auction_lot.tenant_id', query.where.tenantId)
       .where(self.db.knex.raw(whereStatements.join(' AND '))) // TODO: make this also available for OR
@@ -461,7 +458,7 @@ class Model {
     if (query.isAdmin === false) {
       hideLotWhereStatement.push("(auction_lot.visibility = 'all' OR auction_lot.visibility is null)");
 
-      if (!_.isEmpty(query.where.asUserId)) {
+      if (query.where.asUserId) {
         hideLotWhereStatement.push("(auction_lot.visibility = 'winner_only' AND auction_lot.status <> 'sold')");
         hideLotWhereStatement.push("(auction_lot.visibility = 'winner_only' AND auction_lot.status = 'sold' AND ULB.row_id IS NOT NULL)");
       }
@@ -509,17 +506,17 @@ class Model {
         if (isCountQuery) {
           return parseInt(lotResults[0].count, 10);
         }
-
-        _.each(lotResults, (row) => {
+        lotResults.forEach((row) => {
           lotIds.push(row['auction_lot-row_id']);
           toReturn.push(self.extractFieldsetInfo(row, query));
         });
 
         return self.extraQueryData(lotIds, toReturn, query);
       }).then((toReturn) => {
-        if(_.includes(query.fieldset, 'reserve-status')
-          || _.includes(query.fieldset, 'detail')
-          || _.includes(query.fieldset, 'timed-auction')) {
+        fieldset.includes('reserve-status')
+        if(fieldset.includes('reserve-status')
+          || fieldset.includes('detail')
+          || fieldset.includes('timed-auction')) {
 
           const auction_lot_ids = toReturn.map(auction_lot => auction_lot['row_id']);
         
@@ -554,14 +551,15 @@ class Model {
         statusBlackList = ['withdrawn', 'draft'];
 
     joinStatements = self.joinStatements(query, false);
-    selectColumns = self.selectColumnsByFieldset(query, false);
-    if (_.includes(query.fieldset, 'detail')){
+    selectColumns = [...new Set(self.selectColumnsByFieldset(query, false))];
+    
+    if (query.fieldset.includes('detail')){
       selectColumns.push(this.db.knex.raw("(auction.duration+auction.time_start) as effective_end_time"));
       selectColumns.push(this.db.knex.raw('image_url(?, artist_image.image_record_id) as artist_image_cover_thumbnail', [this.config.get('imageBaseUrl').replace(/\/?$/, '/')]));
     }
     kQuery = self.db.knex('auction_lot')
       .select(
-        _.uniq(selectColumns)
+        selectColumns
       )
       .where('auction_lot.tenant_id', query.where.tenantId)
       .where(self.db.knex.raw(whereStatements.join(' AND '))) // TODO: make this also available for OR
@@ -579,7 +577,7 @@ class Model {
       .then((lotResults) => {
         let toReturn = [],
             lotIds = [];
-        _.each(lotResults, (row) => {
+        lotResults.forEach((row) => {
           lotIds.push(row['auction_lot-row_id'])
           toReturn.push(self.extractFieldsetInfo(row, query));
         });
@@ -588,7 +586,7 @@ class Model {
         });
         return self.extractCategories(lotIds, toReturn, query);
       }).then((toReturn) => {
-        if (_.includes(query.fieldset, 'detail') || toReturn.length > 0) {
+        if (query.fieldset.includes('detail') || toReturn.length > 0) {
           return self.getLotImages(toReturn[0]['row_id']).then((images) => {
             toReturn[0]['images'] = images;
             toReturn[0]['cover_thumbnail'] = (images[0]) ? images[0].thumbnail_url : null;
@@ -606,7 +604,7 @@ class Model {
       .where('row_id', lotId)
       .where('tenant_id', tenantId);
 
-    if (!_.isUndefined(auctionId)) {
+    if (auctionId) {
       query.where('auction_id', auctionId);
     }
 
@@ -699,7 +697,7 @@ class Model {
   getAuctionForLot(auction) {
     let self = this,
         query;
-    if (!_.isObject(auction)) {
+    if (typeof auction !== 'object' || Array.isArray(auction)) {
       query = self.db.knex('auction')
         .where('row_id', auction);
 
@@ -726,7 +724,7 @@ class Model {
         lot;
     // TODO: Validate data
 
-    if (!_.isEmpty(data.artist)) {
+    if (data.artist) {
       return this.getOrInsertArtist(data.artist, tenantId).then((_artist) => {
         data.artist_id = _artist.row_id;
         return self.db.knex('auction_lot').insert(data).returning('*').then((_lot) => {
@@ -902,4 +900,4 @@ class Model {
   }
 
 }
-module.exports = Model;
+export default Model;

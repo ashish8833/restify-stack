@@ -1,6 +1,8 @@
 'use strict';
 
 import Model from './model';
+import bind from 'lodash.bind';
+
 import Controller from './controller';
 import { needsRole } from '../../../../middleware/auth';
 
@@ -19,47 +21,14 @@ export function create (router, config, logger, db) { // eslint-disable-line no-
 
   router.get(
     '/auction-lot',
-    controller.auctionLot.bind(controller)
+    bind(controller.auctionLot, controller)
   );
-
-  // router.get(
-  //     '/admin/auction-lot/dataload/status/:jobId',
-  //     needsRole('admin'),
-  //     controller.getDataloadStatus.bind(controller)
-  // );
 
   router.get(
     '/admin/auction-lot/:lotId',
     needsRole('admin'),
-    controller.getLotById.bind(controller)
+    bind(controller.getLotById, controller)
   );
-
-  // router.post(
-  //   '/admin/auction-lot',
-  //   needsRole('admin'),
-  //   controller.auctionLotSave.bind(controller)
-  //   // _.bind(controller.auctionLotSave, controller)
-  // );
-
-  // router.post(
-  //   '/auction-lot-map',
-  //   _.bind(controller.auctionLotMap, controller)
-  // );
-
-  // router.post(
-  //   '/auction-lot-list',
-  //   _.bind(controller.auctionLotList, controller)
-  // );
-
-  // router.get(
-  //   '/auction-lot/:auctionLotId/condition-report',
-  //   _.bind(controller.getConditionReport, controller)
-  // );
-
-  // router.post(
-  //   '/auction-lot/:auctionLotId/condition-report',
-  //   _.bind(controller.requestConditionReport, controller)
-  // );
 
   return router;
 }

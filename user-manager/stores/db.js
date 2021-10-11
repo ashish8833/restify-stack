@@ -1,8 +1,8 @@
 'use strict';
 
-const _ = require('lodash'),
-      PromiseA = require('bluebird'),
-      lispParser = require('LISP.js');
+import { resolve } from 'bluebird';
+import { parse } from 'LISP.js';
+import { sql } from 'slonik';
 
 /**
  * User management.
@@ -18,7 +18,7 @@ class UserManagerDatabaseStore {
   setup() {
     this.logger.info('userManager.store[${storeType}].start', { storeType: this.type });
 
-    return PromiseA.resolve();
+    return resolve();
   }
 
   serializeUser(user) {
@@ -32,18 +32,15 @@ class UserManagerDatabaseStore {
    * @return {Object|undefined} a user object.
    */
   getUserWithAccessToken(accessToken) {
-    return this.db.knex('session')
-      .where('access_token', accessToken)
-      .andWhere('session.expiration', '>', this.db.knex.fn.now())
-      .innerJoin('customer', 'session.customer_id', 'customer.row_id')
-      .innerJoin('client_password', 'session.creating_client_id', 'client_password.row_id')
-      .first('customer.*', 'session.expiration', 'client_password.permissions')
+    return this.db.slonik.one(sql`SELECT customer.*, session.expiration, client_password.permissions FROM session INNER JOIN
+     customer ON session.customer_id = customer.row_id INNER JOIN client_password ON client_password.row_id = session.creating_client_id
+     WHERE session.access_token = ${accessToken} AND DATE(session.expiration) > DATE(NOW())`)
       .then((customer) => {
         if (customer) {
           customer._kind = 'customer';
 
-          if (!_.isEmpty(customer.permissions)) {
-            customer.permissions = lispParser.parse(customer.permissions);
+          if (customer.permissions && customer.permissions.length) {
+            customer.permissions = parse(customer.permissions);
           }
         }
 
@@ -60,7 +57,7 @@ class UserManagerDatabaseStore {
   getUserWithAPIKey(apiKey) {
     let user;
 
-    return PromiseA.resolve(user);
+    return resolve(user);
   }
 
   /**
@@ -71,25 +68,24 @@ class UserManagerDatabaseStore {
    * @return {Object|undefined} a user object.
    */
   getUserWithUsername(username, password) {
-    return this.db.knex('client_password')
-      .where('client_name', username)
-      .where('client_secret', password)
-      .first('*')
+    return this.db.slonik.one(sql`SELECT client_password.* FROM client_password
+     WHERE client_password.client_name = ${username} AND client_password.client_secret = ${password}`)
       .then((client_password) => { // eslint-disable-line am_camelcase
         let user;
 
-        if (client_password && _.isEmpty(client_password.blacklist_reason)) { // eslint-disable-line am_camelcase
+        if (client_password && !client_password.blacklist_reason) { // eslint-disable-line am_camelcase
           user = {
             _kind: 'client_password',
+            permissions: [],
             row_id: client_password.row_id, // eslint-disable-line am_camelcase
             username: client_password.client_name, // eslint-disable-line am_camelcase
             password: client_password.client_secret, // eslint-disable-line am_camelcase
             platform: client_password.platform, // eslint-disable-line am_camelcase
             tenant_id: client_password.tenant_id, // eslint-disable-line am_camelcase
           };
-
-          if (!_.isEmpty(client_password.permissions)) { // eslint-disable-line am_camelcase
-            user.permissions = lispParser.parse(client_password.permissions); // eslint-disable-line am_camelcase
+          
+          if (client_password.permissions && client_password.permissions.length) { // eslint-disable-line am_camelcase
+            user.permissions = parse(client_password.permissions); // eslint-disable-line am_camelcase
           }
         }
 
@@ -98,4 +94,4 @@ class UserManagerDatabaseStore {
   }
 }
 
-module.exports = UserManagerDatabaseStore;
+export default UserManagerDatabaseStore;

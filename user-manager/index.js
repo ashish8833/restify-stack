@@ -1,6 +1,7 @@
 'use strict';
 
-const _ = require('lodash');
+import get from 'lodash.get';
+import pick from 'lodash.pick';
 
 /**
  * User management.
@@ -14,11 +15,11 @@ class UserManager {
     this.db = db;
 
     this.stores = {
-      fs: require('./stores/fs'),
-      db: require('./stores/db'),
+      fs: require('./stores/fs').default,
+      db: require('./stores/db').default,
     };
 
-    if (_.get(this.stores, storeType)) {
+    if (get(this.stores, storeType)) {
       let Store = this.stores[storeType];
 
       this.store = new Store(
@@ -75,11 +76,11 @@ class UserManager {
    */
   login(req, res /* , next */) {
     if (req.user) {
-      res.json({ user: _.pick(req.user, ['username', 'roles']) });
+      res.json({ user: pick(req.user, ['username', 'roles']) });
     } else {
       res.error('Not authorized');
     }
   }
 }
 
-module.exports = UserManager;
+export default UserManager;

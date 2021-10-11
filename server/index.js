@@ -1,11 +1,10 @@
 'use strict';
 
-const _ = require('lodash'),
-      PromiseA = require('bluebird'),
-      fs = require('fs-extra'),
-      restify = require('restify'),
-      CacheMiddleware = require('../middleware/cache'),
-      corsMiddleware = require('restify-cors-middleware');
+import  bind from 'lodash.bind';
+import PromiseA, { join } from 'bluebird';
+import { createServer } from 'restify';
+import { config as _config } from '../middleware/cache';
+import corsMiddleware from 'restify-cors-middleware';
 
 class Server {
   constructor(config, logger, db, userManager) {
@@ -16,40 +15,34 @@ class Server {
     this.userManager = userManager;
 
     // set static config for redis for caching
-    CacheMiddleware.config = this.config.get('redis.cache');
+    // _config = this.config.get('redis.cache');
   }
 
-  start() {
+  async start() {
     const me = this;
 
-    return PromiseA.join(
+    await PromiseA(
       this.userManager.setup()
-    )
-      .then(() => {
-        me.logger.log('server.start');
+    );
+    me.logger.log('server.start');
+    me.setupRestify();
+    // setup process userId, groupId
+    me.server.on('listening', () => {
+      if (me.config.has('groupId') && process.getgid() !== me.config.get('groupId')) {
+        process.setgid(me.config.get('groupId'));
+      }
 
-        me.setupRestify();
+      if (me.config.has('userId') && process.getuid() !== me.config.get('userId')) {
+        process.setuid(me.config.get('userId'));
+      }
 
-        // setup process userId, groupId
-        me.server.on('listening', () => {
-          if (me.config.has('groupId') && process.getgid() !== me.config.get('groupId')) {
-            process.setgid(me.config.get('groupId'));
-          }
-
-          if (me.config.has('userId') && process.getuid() !== me.config.get('userId')) {
-            process.setuid(me.config.get('userId'));
-          }
-
-          me.logger.log('server.started: ${url}', { url: me.server.url });
-        });
-
-        me.server.listen(
-          parseInt(me.config.get('server.port'), 10),
-          me.config.get('server.address')
-        );
-
-        return me;
-      });
+      me.logger.log('server.started: ${url}', { url: me.server.url });
+    });
+    me.server.listen(
+      parseInt(me.config.get('server.port'), 10),
+      me.config.get('server.address')
+    );
+    return me;
   }
 
   shutdown() {
@@ -69,19 +62,19 @@ class Server {
     let options,
         cors;
 
-    if (this.config.get('server.isSecure') === true) {
-      options = {
-        key: fs.readFileSync(this.config.get('server.key')),
-        // FIXME: THIS SHOULD BE THE  ../ssl/cert-bundle.pem BUNDLE CREATED WITH SOMETHING
-        // FIXME: SIMILAR TO THE auction-realtime-nodejs-server/cas/create-bundle.sh SCRIPT
-        // FIXME: WARNING!!!!!!! NOT TESTED HAS I DO NOT HAVE THE SSL FILES
-        // FIXME: https://github.com/coolaj86/node-ssl-root-cas
-        certificate: fs.readFileSync(this.config.get('server.cert')),
-        ca: fs.readFileSync(this.config.get('server.ca')),
-      };
-    }
+    // if (this.config.get('server.isSecure') === true) {
+    //   options = {
+    //     key: readFileSync(this.config.get('server.key')),
+    //     // FIXME: THIS SHOULD BE THE  ../ssl/cert-bundle.pem BUNDLE CREATED WITH SOMETHING
+    //     // FIXME: SIMILAR TO THE auction-realtime-nodejs-server/cas/create-bundle.sh SCRIPT
+    //     // FIXME: WARNING!!!!!!! NOT TESTED HAS I DO NOT HAVE THE SSL FILES
+    //     // FIXME: https://github.com/coolaj86/node-ssl-root-cas
+    //     certificate: readFileSync(this.config.get('server.cert')),
+    //     ca: readFileSync(this.config.get('server.ca')),
+    //   };
+    // }
 
-    this.server = restify.createServer(options);
+    this.server = createServer(options);
 
     // enable CORS for allowed domains
     cors = corsMiddleware({
@@ -107,7 +100,7 @@ class Server {
   }
 
   setupMiddleware() {
-    const Middleware = require('../middleware');
+    import Middleware from'../middleware';
 
     this.logger.log('server.start.setupMiddleware');
 
@@ -137,9 +130,9 @@ class Server {
       this.db
     );
     apiRoutes.use(this.middleware.Stats.collect);
-    apiRoutes.use(_.bind(this.middleware.authenticate, this.middleware));
+    apiRoutes.use(bind(this.middleware.authenticate, this.middleware));
     apiRoutes.applyRoutes(this.server, '/v5');
   }
 }
 
-module.exports = Server;
+export default Server;

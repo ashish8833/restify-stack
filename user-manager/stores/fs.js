@@ -1,8 +1,7 @@
 'use strict';
 
-const _ = require('lodash'),
-      PromiseA = require('bluebird'),
-      fs = PromiseA.promisifyAll(require('fs-extra'));
+import { promisifyAll, resolve } from 'bluebird';
+const fs = promisifyAll(require('fs-extra'));
 
 /**
  * User management.
@@ -20,7 +19,7 @@ class UserManagerFSStore {
 
     this.logger.info('userManager.store[${storeType}].start', { storeType: this.type });
 
-    return fs.readFileAsync(this.config.get('path'))
+    return fs.readFileSync(this.config.get('path'))
       .then((data) => {
         let users = JSON.parse(data);
 
@@ -43,14 +42,14 @@ class UserManagerFSStore {
   getUserWithAccessToken(accessToken) {
     var user;
 
-    _.forEach(this.users, (u) => {
-      if (_.isString(u.accessToken) && u.accessToken === accessToken) {
+    this.users.forEach((u) => {
+      if (typeof u.accessToken === 'string' && u.accessToken === accessToken) {
         user = u;
         return false;
       }
     });
 
-    return PromiseA.resolve(user);
+    return resolve(user);
   }
 
   /**
@@ -62,14 +61,14 @@ class UserManagerFSStore {
   getUserWithAPIKey(apiKey) {
     var user;
 
-    _.forEach(this.users, (u) => {
-      if (_.isString(u.apiKey) && u.apiKey === apiKey) {
+    this.users.forEach((u) => {
+      if (typeof u.apiKey === 'string' && u.apiKey === apiKey) {
         user = u;
         return false;
       }
     });
 
-    return PromiseA.resolve(user);
+    return resolve(user);
   }
 
   /**
@@ -82,15 +81,15 @@ class UserManagerFSStore {
   getUserWithUsername(username, password) {
     var user;
 
-    _.forEach(this.users, (u) => {
-      if (_.isString(u.username) && u.username === username && u.password === password) {
+    this.users.forEach((u) => {
+      if (typeof u.username === 'string' && u.username === username && u.password === password) {
         user = u;
         return false;
       }
     });
 
-    return PromiseA.resolve(user);
+    return resolve(user);
   }
 }
 
-module.exports = UserManagerFSStore;
+export default UserManagerFSStore;

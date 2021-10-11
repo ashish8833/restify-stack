@@ -4,7 +4,6 @@ import { requestToCurl } from '../utils';
 import { plugins } from 'restify';
 import { HttpError } from 'restify-errors';
 import AuthMiddleware from './auth';
-import StatsMiddleware from './stats';
 import helmet from 'helmet';
 import response from './response';
 
@@ -16,16 +15,16 @@ class Middleware {
     this.config = config;
     this.logger = logger;
     this.Auth = AuthMiddleware;
-    this.Stats = StatsMiddleware;
   }
 
   static _noAuthRoute(req) {
     const path = req.getRoute().path,
           method = req.method,
-          routes = [
-            { path: '/v5/services/biddable/deposit', method: 'POST' },
-            { path: '/v5/services/apps/get-current-time-utc', method: 'GET' },
-          ];
+          routes = [];
+          //[
+          //  { path: '/v5/services/biddable/deposit', method: 'POST' },
+          //  { path: '/v5/services/apps/get-current-time-utc', method: 'GET' },
+          //];
 
     return Array.some(routes, { path, method });
   }
@@ -176,28 +175,6 @@ class Middleware {
         next();
       });
     }
-  }
-
-  setupAuthRoutes(server, userManager) {
-    // TODO: should this be implemented?
-    // const me = this;
-
-    // server.post('/api/v1/login',
-    //   me.passport.authenticate('local', {}),
-    //   _.bind(userManager.login, userManager)
-    // );
-
-    // server.post('/api/v1/logout', (req, res) => {
-    //   req.logOut();
-
-    //   return req.session.destroy((err) => {
-    //     if (err) {
-    //       res.error(err);
-    //     } else {
-    //       res.json({ success: true });
-    //     }
-    //   });
-    // });
   }
 
   /**

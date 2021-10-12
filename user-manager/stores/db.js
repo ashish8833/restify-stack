@@ -1,6 +1,8 @@
 'use strict';
 
-import { resolve } from 'bluebird';
+
+import pkg from 'bluebird';
+const { resolve } = pkg;
 import { parse } from 'LISP.js';
 import { sql } from 'slonik';
 

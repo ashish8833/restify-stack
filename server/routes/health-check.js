@@ -1,8 +1,9 @@
 'use strict';
 
-const _ = require('lodash'),
-      PromiseA = require('bluebird'),
-      Router = require('restify-router');
+import bind from 'lodash.bind';
+import pkg from 'bluebird';
+const { resolve } = pkg;
+import { Router as _Router } from 'restify-router';
 
 class Model {
   constructor(config, logger) {
@@ -15,7 +16,7 @@ class Model {
       healthy: true,
     };
 
-    return PromiseA.resolve(response);
+    return resolve(response);
   }
 }
 
@@ -38,21 +39,21 @@ class Controller {
   }
 }
 
-module.exports.createModel = function (config, logger) { // eslint-disable-line no-unused-vars
+function createModel(config, logger) { // eslint-disable-line no-unused-vars
   return new Model(config, logger);
-};
+}
 
-module.exports.createController = function (config, logger) { // eslint-disable-line no-unused-vars
-  const model = module.exports.createModel(config, logger);
+function createController (config, logger) { // eslint-disable-line no-unused-vars
+  const model = createModel(config, logger);
 
   return new Controller(config, logger, model);
-};
+}
 
-module.exports.create = function (config, logger) { // eslint-disable-line no-unused-vars
-  const router = new Router.Router(), // eslint-disable-line new-cap
-        controller = module.exports.createController(config, logger);
+export default function create(config, logger) { // eslint-disable-line no-unused-vars
+  const router = new _Router(), // eslint-disable-line new-cap
+        controller = createController(config, logger);
 
-  router.get('/', _.bind(controller.healthCheck, controller));
+  router.get('/', bind(controller.healthCheck, controller));
 
   return router;
-};
+}

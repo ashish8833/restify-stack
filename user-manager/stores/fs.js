@@ -1,7 +1,9 @@
 'use strict';
 
-import { promisifyAll, resolve } from 'bluebird';
-const fs = promisifyAll(require('fs-extra'));
+import pkg from 'bluebird';
+const { promisifyAll, resolve } = pkg;
+import fsExtra from 'fs-extra';
+const fs = promisifyAll(fsExtra);
 
 /**
  * User management.

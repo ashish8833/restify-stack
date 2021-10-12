@@ -2,33 +2,36 @@
 
 import get from 'lodash.get';
 import pick from 'lodash.pick';
+import Constant from '../constants';
+import UserManagerFSStore from './stores/fs';
+import UserManagerDatabaseStore from './stores/db';
 
 /**
  * User management.
  */
 class UserManager {
-  constructor(config, logger, db) {
-    let storeType = config.get('userManager.store');
-
-    this.config = config;
+  constructor(logger, db) {
+    let storeType = Constant.userManager.store;
     this.logger = logger;
     this.db = db;
 
     this.stores = {
-      fs: require('./stores/fs').default,
-      db: require('./stores/db').default,
+      fs: UserManagerFSStore,
+      db: UserManagerDatabaseStore,
     };
 
     if (get(this.stores, storeType)) {
-      let Store = this.stores[storeType];
-
+      console.log(storeType);
+      const Store = this.stores[storeType];
+      console.log(Store);
       this.store = new Store(
-        this.config.get(`userManager.storeConfig.${storeType}`),
+        Constant.userManager.storeConfig[storeType],
         this.logger,
         this.db
       );
+      console.log(this.store);
     } else {
-      this.logger.error('userManager.store[${storeType}].error: unknown', { storeType: storeType });
+      this.logger.error('userManager.store[${storeType}].error: unknown', { storeType });
       throw new Error(`Unsupported "${storeType}" store type`);
     }
   }

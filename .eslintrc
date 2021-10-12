@@ -1,0 +1,17 @@
+{
+  "root": true,
+  "env": {
+    "node": true,
+    "mocha": true,
+    "es6": true
+  },
+  "parserOptions": {
+    "sourceType": "module",
+    "ecmaVersion": 8
+  },
+  "plugins": ["html"],
+  "extends": "./lint/eslint_config",
+  "settings": {
+    "html/html-extensions": [".html", ".vue"]
+  }
+}

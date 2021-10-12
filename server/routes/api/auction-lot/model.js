@@ -7,8 +7,7 @@ import modelsHelper from '../../../../models/helper';
 import AuthMiddleware from '../../../../middleware/auth';
 
 class Model {
-  constructor(config, logger, db) {
-    this.config = config;
+  constructor(logger, db) {
     this.logger = logger;
     this.db = db;
   }

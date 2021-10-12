@@ -3,25 +3,43 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "lint": "eslint --ext .js --rulesdir=./lint/eslint-rules index.js application.js ./",
+    "lint-local": "eslint --ext .js --rulesdir=./lint/eslint-rules index.js application.js ./; exit 0",
+    "mocha": "mocha",
+    "start": "NODE_OPTIONS='--experimental-specifier-resolution=node' node index.js --env=dev --development-mode --enable-server",
+    "test": "npm run lint && mocha"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "LISP.js": "0.0.6",
     "bunyan": "^1.8.15",
     "dotenv": "^10.0.0",
+    "esm": "^3.2.25",
+    "fs-extra": "^10.0.0",
+    "helmet": "^4.6.0",
     "joi": "^17.4.2",
     "lodash.bind": "^4.2.1",
     "lodash.get": "^4.4.2",
     "lodash.pick": "^4.4.0",
     "lodash.pickby": "^4.6.0",
+    "lodash.template": "^4.5.0",
     "lodash.trim": "^4.5.1",
+    "passport": "^0.5.0",
+    "passport-http": "^0.3.0",
+    "passport-http-bearer": "^1.0.1",
     "recase": "^1.0.4",
     "restify": "^8.6.0",
+    "restify-cors-middleware": "^1.1.1",
     "restify-errors": "^8.0.2",
+    "restify-router": "^0.6.2",
+    "rollbar": "^2.24.0",
     "slonik": "^24.1.1"
+  },
+  "devDependencies": {
+    "passport-localapikey": "0.0.3"
   }
 }

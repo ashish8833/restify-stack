@@ -1,29 +1,30 @@
 'use strict';
 
-const _ = require('lodash'),
-      PromiseA = require('bluebird'),
-      moment = require('moment');
+import template from 'lodash.template';
+import pkg from 'bluebird';
+const { resolve } = pkg;
+import moment from 'moment';
 
 /**
  * Console logger engine.
  */
-class ConsoleLogger {
+export default class ConsoleLogger {
   constructor(config, devMode) {
     this.config = config;
     this.devMode = devMode || false;
   }
 
   setup() {
-    return PromiseA.resolve();
+    return resolve();
   }
 
   format(message, data) {
-    _.forEach(data, (value, key) => {
-      if (_.isObject(value) || _.isArray(value)) {
+    data.forEach((value, key) => {
+      if (typeof value === 'object' || Array.isArray(value)) {
         data[key] = JSON.stringify(value, null, 2);
       }
     });
-    return _.template(message)(data);
+    return template(message)(data);
   }
 
   log(level, message, data) {
@@ -45,5 +46,3 @@ class ConsoleLogger {
     }
   }
 }
-
-module.exports = ConsoleLogger;

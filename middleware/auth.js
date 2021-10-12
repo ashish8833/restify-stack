@@ -1,6 +1,6 @@
 'use strict';
-import { UnauthorizedError } from 'restify-errors';
-
+import pkg from 'restify-errors';
+const { UnauthorizedError } = pkg;
 /**
  * Connect/Restify custom middleware.
  */

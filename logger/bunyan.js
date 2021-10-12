@@ -1,37 +1,36 @@
 'use strict';
 
-const _ = require('lodash'),
-      PromiseA = require('bluebird'),
-      bunyan = require('bunyan'),
-      path = require('path'),
-      mkdirp = PromiseA.promisify(require('mkdirp'));
+import get from 'lodash.get';
+import PromiseA from 'bluebird';
+import { createLogger } from 'bunyan';
+import { dirname } from 'path';
+import Mkdirp from 'mkdirp';
+const mkdirp = PromiseA.promisify(Mkdirp);
 
 /**
  * Bunyan logger engine.
  */
-class BunyanLogger {
+ export default class BunyanLogger {
   constructor(config, devMode, rollbar) {
     this.config = config;
     this.devMode = devMode || false;
     this.rollbar = rollbar;
   }
 
-  setup() {
+  async setup() {
     const me = this;
-    let logsFolder = path.dirname(_.get(me.config, 'path'));
+    let logsFolder = dirname(get(me.config, 'path'));
 
-    return mkdirp(logsFolder)
-      .then(() => {
-        me.logger = bunyan.createLogger({
-          name: _.get(me.config, 'logName'),
-          streams: [{
-            type: _.get(me.config, 'type', 'rotating-file'),
-            path: _.get(me.config, 'path'),
-            period: _.get(me.config, 'period', '1d'),
-            count: _.get(me.config, 'count', 3),
-          }],
-        });
-      });
+    await mkdirp(logsFolder);
+    me.logger = createLogger({
+      name: get(me.config, 'logName'),
+      streams: [{
+        type: get(me.config, 'type', 'rotating-file'),
+        path: get(me.config, 'path'),
+        period: get(me.config, 'period', '1d'),
+        count: get(me.config, 'count', 3),
+      }],
+    });
   }
 
   format(message, data) {
@@ -40,6 +39,7 @@ class BunyanLogger {
 
   log(level, message, data, req) {
     message = this.format(message, data);
+    console.log(message);
     this.logger[level](data, message);
 
     // TODO: integrate with rollbar
@@ -49,5 +49,3 @@ class BunyanLogger {
     }
   }
 }
-
-module.exports = BunyanLogger;

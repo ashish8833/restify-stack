@@ -1,0 +1,3 @@
+[submodule "lint"]
+	path = lint
+	url = git@github.com:auctionmobility/nodejs_style_guide

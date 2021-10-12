@@ -1,11 +1,24 @@
 'use strict';
 
-import { requestToCurl } from '../utils';
+import Utils from '../utils';
 import { plugins } from 'restify';
-import { HttpError } from 'restify-errors';
+import pkg from 'restify-errors';
+const { HttpError } = pkg;
 import AuthMiddleware from './auth';
 import helmet from 'helmet';
 import response from './response';
+import passport from 'passport';
+import {
+  Strategy as PassportBearerStrategy
+} from 'passport-http-bearer';
+import {
+  Strategy as PassportAPIKeyStrategy
+} from 'passport-localapikey';
+import {
+  BasicStrategy as PassportBasicStrategy
+} from 'passport-http';
+import Constant from '../constants';
+
 
 /**
  * Connect/Express custom middleware.
@@ -30,16 +43,12 @@ class Middleware {
   }
 
   setupAuthMiddleware(server, userManager) {
-    const me = this,
-          passport = require('passport'),
-          PassportBearerStrategy = require('passport-http-bearer').Strategy,
-          PassportAPIKeyStrategy = require('passport-localapikey').Strategy,
-          PassportBasicStrategy = require('passport-http').BasicStrategy;
-
+    const me = this;
+       
     this.logger.log('middleware.setupAuth');
 
     // setup middleware
-    server.use(helmet(this.config.get('server.helmet')));
+    server.use(helmet());
 
     server.use(plugins.acceptParser(server.acceptable));
     server.use(plugins.authorizationParser());
@@ -99,9 +108,9 @@ class Middleware {
     server.use(plugins.queryParser());
     server.use(plugins.bodyParser({multiples: true}));
     
-    if (this.config.has('server.throttle')) {
-      server.use(plugins.throttle(this.config.get('server.throttle')));
-    }
+    // if (this.config.has('server.throttle')) {
+    //   server.use(plugins.throttle(this.config.get('server.throttle')));
+    // }
 
     server.use(plugins.conditionalRequest());
 
@@ -168,9 +177,9 @@ class Middleware {
     this.passport = passport;
 
     // curl logger
-    if (this.config.get('developmentMode') === true) {
+    if (Constant.developmentMode) {
       server.use((req, res, next) => {
-        me.logger.log('request.curl: ${curl}\n', { curl: requestToCurl(req) });
+        me.logger.log('request.curl: ${curl}\n', { curl: Utils.requestToCurl(req) });
 
         next();
       });

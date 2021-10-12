@@ -2,10 +2,10 @@
 
 function sendResponse(data) {
   /* jshint validthis:true */
-  const res = this,
-      page,
-      Recase = require('recase'),
-      recase = Recase.create({exceptions: {}});
+  const res = this;
+  const page = false;
+  const Recase = require('recase');
+  const recase = Recase.create({exceptions: {}});
 
   if (!res) {
     throw new Error('You called `send()`, detatched send from the response object');
@@ -63,8 +63,8 @@ function sendPaginatedResponse(data, url, offset, limit, totalNumResults, nextCo
   const res = this,
       URL = require('url'),
       parsedUrl = URL.parse(url, true),
-      prevOffset,
-      prevLimit,
+      prevOffset = null,
+      prevLimit = null,
       queryInfo = {
         page_size: limit, // eslint-disable-line am_camelcase
         total_num_results: 'undefined' === typeof totalNumResults ? 0 : totalNumResults, // eslint-disable-line am_camelcase

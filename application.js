@@ -1,42 +1,44 @@
 'use strict';
 
-import { each, resolve } from 'bluebird';
-import { create } from './config';
+import pkg from 'bluebird';
+const {  each } = pkg;
 import Logger from './logger';
-// import Stats from './lib/stats';
 import Database from './database';
 import UserManager from './user-manager';
+import Server from './server/index';
 
-class Application {
+
+export default class Application {
   constructor() {
-    this.config = create();
-    this.logger = new Logger(this.config);
-    this.db = new Database(this.config, this.logger);
-    this.userManager = new UserManager(this.config, this.logger, this.db);
-    // this.subsystems = null;
+    this.logger = new Logger();
+    this.db = new Database(this.logger);
+    this.userManager = new UserManager(this.logger, this.db);
+
   }
 
   async start() {
-    const me = this,
-          psSetup = [this.logger, this.db],
-          psStart = [this.db];
+    const me = this;
+    const psSetup = [this.logger, this.db];
+    const psStart = [this.db];
 
     await each(psSetup, (service) => {
+      console.log("1111", service);
       return service.setup();
     });
 
     psStart.push(me.newServer());    
+
+    await each(psStart, (service) => {
+      console.log("1111", service);
+      return service.start(me);
+    });
   }
 
   newServer() {
-    if (this.config.get('server.enabled') === true) {
-      const Server = require('./server');
-
-      return new Server(this.config, this.logger, this.db, this.userManager);
-    }
-
-    return resolve();
+    console.log("21212121");
+    if (process.env.ENABLED) {
+      return new Server(this.logger, this.db, this.userManager);
+    } 
+    return true;
   }
 }
-
-export default Application;

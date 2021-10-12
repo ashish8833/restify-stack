@@ -1,11 +1,11 @@
 'use strict';
 import { createPool } from 'slonik';
-import { resolve } from 'bluebird';
+import pkg from 'bluebird';
+const { resolve } = pkg;
 import { config } from "dotenv";
 config();
 class Database {
-  constructor(config, logger) {
-    this.config = config;
+  constructor(logger) {
     this.logger = logger;
     this.slonik = null;
   }
@@ -18,7 +18,7 @@ class Database {
         captureStackTrace: false,
     };
     this.slonik = createPool(`${DB_CLIENT}://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`, clientConfiguration);
-
+    console.log(this.slonik);
     return resolve(this);
   }
 

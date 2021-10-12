@@ -1,9 +1,11 @@
 'use strict';
 
-const _ = require('lodash'),
-      PromiseA = require('bluebird'),
-      Rollbar = require('rollbar');
-
+import pkg from 'bluebird';
+const { all } = pkg;
+import Rollbar from 'rollbar';
+import Constant from '../constants';
+import ConsoleLogger from './console';
+import BunyanLogger from './bunyan';
 
 class DummyRollbar {
   error() {}
@@ -12,7 +14,7 @@ class DummyRollbar {
 /**
  * Logger abstraction supporting multiple logging engines.
  */
-class Logger {
+export default class Logger {
   constructor(config) {
     const me = this;
 
@@ -24,13 +26,13 @@ class Logger {
     this.LEVEL_DEBUG = 'debug';
 
     this.config = config;
-    this.enabled = this.config.get('logging.enabled', false);
-    this.defaultLevel = this.config.get('logging.defaultLevel', 'info');
+    this.enabled = Constant.loggingEnabled;
+    this.defaultLevel = Constant.loggingDefaultLevel;
     this.engines = {};
 
     // rollbar init
-    var rollbarConfig = this.config.get('rollbar');
-    if (rollbarConfig && rollbarConfig.accessToken && this.config.get('developmentMode') !== true) {
+    var rollbarConfig = Constant.rollbar;
+    if (rollbarConfig && rollbarConfig.accessToken && !Constant.developmentMode) {
       this.rollbar = new Rollbar({
         accessToken: rollbarConfig.accessToken,
         environment: process.NODE_ENV,
@@ -40,24 +42,25 @@ class Logger {
       this.rollbar = new DummyRollbar();
     }
 
-    _.forEach(this.config.get('logging.engines'), (engineConfig) => {
+    Constant.loggingEngines.forEach((engineConfig) => {
       if (engineConfig.enabled === true) {
-        let Engine = require(`./${engineConfig.name}`),
-            engine = new Engine(engineConfig, me.config.get('developmentMode'), me.rollbar);
-
-        me.engines[engineConfig.name] = engine;
+        if (engineConfig.name === 'console') {
+          const engine = new ConsoleLogger(engineConfig, Constant.developmentMode, me.rollbar);
+          me.engines[engineConfig.name] = engine;
+        } else {
+          const engine = new BunyanLogger(engineConfig, Constant.developmentMode, me.rollbar);
+          me.engines[engineConfig.name] = engine;
+        }
       }
     });
   }
 
   setup() {
     let ps = [];
-
-    _.forEach(this.engines, (engine) => {
-      ps.push(engine.setup());
-    });
-
-    return PromiseA.all(ps);
+    for (const [key, value] of Object.entries(this.engines)) {
+      ps.push(value.setup());
+    }
+    return all(ps);
   }
 
   /**
@@ -69,9 +72,9 @@ class Logger {
    */
   apply(level, message, data, req) {
     if (level === this.LEVEL_ERROR || this.enabled === true) {
-      _.forEach(this.engines, (engine) => {
-        engine.log(level, message, data, req);
-      });
+      for (const [key, value] of Object.entries(this.engines)) {
+        value.log(level, message, data, req);
+      }
     }
   }
 
@@ -100,5 +103,3 @@ class Logger {
     this.apply(this.LEVEL_DEBUG, message, data);
   }
 }
-
-module.exports = Logger;

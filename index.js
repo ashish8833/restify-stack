@@ -1,4 +1,4 @@
-import { createServer, plugins } from 'restify';
+/*import { createServer, plugins } from 'restify';
 
 const server = createServer({
     name: 'restify-stack',
@@ -16,3 +16,11 @@ require('./router')(server);
 server.listen(process.env.PORT, function() {
     console.log('%s listening at %s', server.name, server.url);
 });
+*/
+
+
+/* ==== Restify According Node APIs ==== */
+'use strict';
+
+import Application from './application';
+new Application().start();

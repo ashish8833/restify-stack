@@ -3,14 +3,13 @@
 import trim from 'lodash.trim';
 import { format } from 'util';
 import { stringify } from 'querystring';
-import { hasRole } from './middleware/auth';
+import AuthMiddleware from './middleware/auth';
 
 /**
  * Some utilities.
  */
 class Utils {
-  constructor(config, logger, db) {
-    this.config = config;
+  constructor(logger, db) {
     this.logger = logger;
     this.db = db;
   }
@@ -112,7 +111,7 @@ class Utils {
    * @return {boolean}
    */
   static isAdmin(user) {
-    return hasRole(user, 'admin') || hasRole(user, 'root');
+    return AuthMiddleware.hasRole(user, 'admin') || AuthMiddleware.hasRole(user, 'root');
   }
 
   /**
